@@ -22,6 +22,7 @@
 						<Option value="away">Armed - Away</Option>
 						<Option value="home">Armed - Home</Option>
 						<Option value="off">Disarmed - Off</Option>
+						<Option value="unknown">Unknown</Option>
 					</List>
 				</ValueType>
 				<TriggerLabel>Alarm Status Changed</TriggerLabel>

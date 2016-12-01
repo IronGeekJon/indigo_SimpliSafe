@@ -1,4 +1,3 @@
-import indigo
 import requests
 import json
 import sys
@@ -18,7 +17,7 @@ class Plugin(indigo.PluginBase):
         # Initialize variables
         self.session = None
         self.debug = True
-        self.state = None
+        self.state = 'unknown'
         self.uid = None
         self.location = None
 
@@ -28,6 +27,9 @@ class Plugin(indigo.PluginBase):
     def __del__(self):
         indigo.PluginBase.__del__(self)
 
+    def deviceStartComm(self, dev):
+        indigo.server.log("Updating device state")
+        self.updateDeviceState(dev)
     # def startup(self):
     #     indigo.server.log(u"SS - STARTUP")
 
@@ -100,15 +102,22 @@ class Plugin(indigo.PluginBase):
         return result_codes[str(result_code)]
 
     def updateDeviceState(self, device):
-        stateToDisplay = 'unknown'
+        stateToDisplay = 'Unknown'
+        imageToDisplay = indigo.kStateImageSel.SensorOff
         if self.state == 'off':
             stateToDisplay = 'Disarmed'
+            imageToDisplay = indigo.kStateImageSel.SensorTripped
         elif self.state == 'home':
             stateToDisplay = 'Armed - Home'
+            imageToDisplay = indigo.kStateImageSel.SensorOn
         elif self.state == 'away':
             stateToDisplay = 'Armed - Away'
+            imageToDisplay = indigo.kStateImageSel.SensorOn
+        else:
+            self.state = 'unknown'
 
-        device.updateStateOnServer('alarmState', value=u'off', uiValue=stateToDisplay, clearErrorState=True)
+        device.updateStateOnServer('alarmState', value=self.state, uiValue=stateToDisplay, clearErrorState=True)
+        device.updateStateImageOnServer(imageToDisplay)
     #
     # def get_state(self):
     #     return self.state
