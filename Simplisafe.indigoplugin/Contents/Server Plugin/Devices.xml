@@ -16,22 +16,20 @@
 			</Field>
 		</ConfigUI>
 		<States>
-			<State id="armedAway">
-				<ValueType boolType="OnOff">Boolean</ValueType>
-				<TriggerLabel>Armed - Away</TriggerLabel>
-				<ControlPageLabel>Armed - Away</ControlPageLabel>
-			</State>
-			<State id="armedHome">
-				<ValueType boolType="OnOff">Boolean</ValueType>
-				<TriggerLabel>Armed - Home</TriggerLabel>
-				<ControlPageLabel>Armed - Home</ControlPageLabel>
-			</State>
-			<State id="disarmed">
-				<ValueType boolType="OnOff">Boolean</ValueType>
-				<TriggerLabel>Disarmed</TriggerLabel>
-				<ControlPageLabel>Disarmed</ControlPageLabel>
+			<State id="alarmState">
+				<ValueType>
+					<List>
+						<Option value="away">Armed - Away</Option>
+						<Option value="home">Armed - Home</Option>
+						<Option value="off">Disarmed - Off</Option>
+					</List>
+				</ValueType>
+				<TriggerLabel>Alarm Status Changed</TriggerLabel>
+				<TriggerLabelPrefix>Alarm Status is</TriggerLabelPrefix>
+				<ControlPageLabel>Current Alarm Status</ControlPageLabel>
+				<ControlPageLabelPrefix>Alarm Status is</ControlPageLabelPrefix>
 			</State>
 		</States>
-		<UiDisplayStateId>Unknown</UiDisplayStateId>
+		<UiDisplayStateId>alarmState</UiDisplayStateId>
 	</Device>
 </Devices>

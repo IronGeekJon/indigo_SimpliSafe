@@ -17,7 +17,7 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
         # Initialize variables
         self.session = None
-        self.debug = False
+        self.debug = True
         self.state = None
         self.uid = None
         self.location = None
@@ -57,7 +57,8 @@ class Plugin(indigo.PluginBase):
         if hasUsername and hasPassword:
             self.login(username, password)
             self.get_location()
-            self.set_state(state)
+            self.set_state(state, device)
+            # self.get_dashboard()
             self.logout()
         else:
             indigo.server.log("Username or password not set", isError=True)
@@ -66,7 +67,7 @@ class Plugin(indigo.PluginBase):
         indigo.server.log("Aborting and Logging Out. %s" % msg, isError=True)
         self.logout()
 
-    def set_state(self, state):
+    def set_state(self, state, device):
 
         if state not in ('home', 'away', 'off'):
             self.abort("State must be 'home', 'away', or 'off'. You tried '%s'." % state)
@@ -92,8 +93,22 @@ class Plugin(indigo.PluginBase):
         }
         result_code = response_object['result']
         self.state = result_codes[str(result_code)]
+
+        self.updateDeviceState(device)
+
         indigo.server.log("Alarm State: %s" % self.state)
         return result_codes[str(result_code)]
+
+    def updateDeviceState(self, device):
+        stateToDisplay = 'unknown'
+        if self.state == 'off':
+            stateToDisplay = 'Disarmed'
+        elif self.state == 'home':
+            stateToDisplay = 'Armed - Home'
+        elif self.state == 'away':
+            stateToDisplay = 'Armed - Away'
+
+        device.updateStateOnServer('alarmState', value=u'off', uiValue=stateToDisplay, clearErrorState=True)
     #
     # def get_state(self):
     #     return self.state
@@ -101,33 +116,35 @@ class Plugin(indigo.PluginBase):
     # def get_temperature(self):
     #     return self.temperature
     #
-    # def get_dashboard(self):
-    #
-    #     if not self.uid:
-    #         self.abort("You tried to get dashboard without first having a User ID set.")
-    #
-    #     if not self.location:
-    #         self.abort("You tried to get dashboard without first having a location set.")
-    #
-    #     dashboard_data = {
-    #         'no_persist': '0',
-    #         'XDEBUG_SESSION_START': 'session_name',
-    #     }
-    #
-    #     URL = DASHBOARD_URL.replace('$UID$', self.uid).replace('$LID$', self.location)
-    #     response = self.session.post(URL, data=dashboard_data)
-    #     response_object = json.loads(response.text)
-    #
-    #     if self.debug:
-    #         print "Dashboard Response: %s" % response.text
-    #
-    #     response_object = json.loads(response.text)
-    #
-    #     self.temperature = response_object['location']['monitoring']['freeze']['temp']
-    #
-    #     if self.debug:
-    #         print "Current Temperature: %s" % self.temperature
-    #
+    def get_dashboard(self):
+
+        if not self.uid:
+            self.abort("You tried to get dashboard without first having a User ID set.")
+            return
+
+        if not self.location:
+            self.abort("You tried to get dashboard without first having a location set.")
+            return
+
+        dashboard_data = {
+            'no_persist': '0',
+            'XDEBUG_SESSION_START': 'session_name',
+        }
+
+        URL = DASHBOARD_URL.replace('$UID$', self.uid).replace('$LID$', self.location)
+        response = self.session.post(URL, data=dashboard_data)
+        response_object = json.loads(response.text)
+
+        if self.debug:
+            indigo.server.log("Dashboard Response: %s" % response.text)
+
+        response_object = json.loads(response.text)
+
+        self.temperature = response_object['location']['monitoring']['freeze']['temp']
+
+        if self.debug:
+            indigo.server.log("Current Temperature: %s" % self.temperature)
+
     def get_location(self):
 
         if not self.uid:

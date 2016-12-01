@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Actions>
-	<SupportURL>http://www.google.com/</SupportURL>
+	<SupportURL>https://github.com/IronGeekJon/indigo_SimpliSafe</SupportURL>
 	<Action id="armAlarmHome" deviceFilter="self">
 		<Name>Arm Simplisafe - Home</Name>
 		<CallbackMethod>armAlarmHome</CallbackMethod>
