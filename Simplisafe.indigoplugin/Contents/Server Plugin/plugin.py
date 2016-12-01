@@ -3,7 +3,6 @@ import requests
 import json
 import sys
 import uuid
-# from optparse import OptionParser
 
 LOGIN_URL = 'https://simplisafe.com/mobile/login/'
 LOGOUT_URL = 'https://simplisafe.com/mobile/logout'
@@ -14,7 +13,6 @@ STATE_URL = 'https://simplisafe.com/mobile/$UID$/sid/$LID$/set-state'
 
 class Plugin(indigo.PluginBase):
 
-#    def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
     def __init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
         # Initialize variables
@@ -26,10 +24,6 @@ class Plugin(indigo.PluginBase):
 
         # Create a requests session to persist the cookies
         self.session = requests.session()
-
-        # If we got debug passed, we'll print out diagnostics.
-#        if debug:
-#            self.debug = True
 
     def __del__(self):
         indigo.PluginBase.__del__(self)
@@ -76,6 +70,7 @@ class Plugin(indigo.PluginBase):
 
         if state not in ('home', 'away', 'off'):
             self.abort("State must be 'home', 'away', or 'off'. You tried '%s'." % state)
+            return
 
         state_data = {
             'state': state,
@@ -90,8 +85,6 @@ class Plugin(indigo.PluginBase):
         response = self.session.post(URL, data=state_data)
         response_object = json.loads(response.text)
 
-        indigo.server.log("Set State Response: %s" % response.text)
-
         result_codes = {
             '2': 'off',
             '4': 'home',
@@ -99,6 +92,7 @@ class Plugin(indigo.PluginBase):
         }
         result_code = response_object['result']
         self.state = result_codes[str(result_code)]
+        indigo.server.log("Alarm State: %s" % self.state)
         return result_codes[str(result_code)]
     #
     # def get_state(self):
@@ -138,6 +132,7 @@ class Plugin(indigo.PluginBase):
 
         if not self.uid:
             self.abort("You tried to get location without first having a User ID set.")
+            return
 
         location_data = {
             'no_persist': '0',
@@ -157,7 +152,8 @@ class Plugin(indigo.PluginBase):
     def login(self, username, password):
 
         if not username or not password:
-            sys.exit("You must provide a username and password.")
+            self.abort("You must provide a username and password.")
+            return
 
         login_data = {
             'name': username,
@@ -188,6 +184,3 @@ class Plugin(indigo.PluginBase):
 
         response = self.session.post(LOGOUT_URL)
         response_object = json.loads(response.text)
-
-        if self.debug:
-            print "Logout Response: %s" % response.text
