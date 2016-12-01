@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<Devices>
+	<!-- ========================================================================= -->
+	<Device type="custom" id="indigoSimpliSafe">
+		<Name>SimpliSafe Alarm</Name>
+		<ConfigUI>
+			<Field id="username"
+            type="textfield"
+            readonly="NO">
+        	<Label>SimpliSafe username:</Label>
+    	</Field>
+			<Field id="password"
+						type="textfield"
+						readonly="NO">
+					<Label>SimpliSafe password:</Label>
+			</Field>
+		</ConfigUI>
+		<States>
+			<State id="armedAway">
+				<ValueType boolType="OnOff">Boolean</ValueType>
+				<TriggerLabel>Armed - Away</TriggerLabel>
+				<ControlPageLabel>Armed - Away</ControlPageLabel>
+			</State>
+			<State id="armedHome">
+				<ValueType boolType="OnOff">Boolean</ValueType>
+				<TriggerLabel>Armed - Home</TriggerLabel>
+				<ControlPageLabel>Armed - Home</ControlPageLabel>
+			</State>
+			<State id="disarmed">
+				<ValueType boolType="OnOff">Boolean</ValueType>
+				<TriggerLabel>Disarmed</TriggerLabel>
+				<ControlPageLabel>Disarmed</ControlPageLabel>
+			</State>
+		</States>
+		<UiDisplayStateId>Unknown</UiDisplayStateId>
+	</Device>
+</Devices>

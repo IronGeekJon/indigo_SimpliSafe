@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<Actions>
+	<SupportURL>http://www.google.com/</SupportURL>
+	<Action id="armAlarmHome" deviceFilter="self">
+		<Name>Arm Simplisafe - Home</Name>
+		<CallbackMethod>armAlarmHome</CallbackMethod>
+	</Action>
+	<Action id="armAlarmAway" deviceFilter="self">
+		<Name>Arm Simplisafe - Away</Name>
+		<CallbackMethod>armAlarmAway</CallbackMethod>
+	</Action>
+	<Action id="disarmAlarm" deviceFilter="self">
+		<Name>Disarm Simplisafe Alarm</Name>
+		<CallbackMethod>disarmAlarm</CallbackMethod>
+	</Action>
+</Actions>
