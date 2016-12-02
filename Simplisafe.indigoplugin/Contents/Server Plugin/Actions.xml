@@ -13,4 +13,8 @@
 		<Name>Disarm Simplisafe Alarm</Name>
 		<CallbackMethod>disarmAlarm</CallbackMethod>
 	</Action>
+	<Action id="getAlarmState" deviceFilter="self">
+		<Name>Get Simplisafe Alarm State</Name>
+		<CallbackMethod>getAlarmState</CallbackMethod>
+	</Action>
 </Actions>

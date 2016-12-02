@@ -16,22 +16,29 @@ class Plugin(indigo.PluginBase):
         indigo.PluginBase.__init__(self, pluginId, pluginDisplayName, pluginVersion, pluginPrefs)
         # Initialize variables
         self.session = None
+        self.session_id = None
         self.debug = True
         self.state = 'unknown'
         self.uid = None
         self.location = None
 
-        # Create a requests session to persist the cookies
-        self.session = requests.session()
+        self.startSession()
 
     def __del__(self):
+        self.logout()
         indigo.PluginBase.__del__(self)
 
     def deviceStartComm(self, dev):
-        indigo.server.log("Updating device state")
-        self.updateDeviceState(dev)
-    # def startup(self):
-    #     indigo.server.log(u"SS - STARTUP")
+        if self.ensureLogin(dev):
+            self.getLocation()
+            if isinstance(dev, indigo.Device):
+                indigo.server.log("Updating device state")
+                self.updateDeviceState(dev)
+        else:
+            self.abort("Unable to start device")
+
+    def deviceStopComm(self, dev):
+        self.logout()
 
     def armAlarmHome(self, action):
         #PluginAction class
@@ -51,25 +58,24 @@ class Plugin(indigo.PluginBase):
         device = indigo.devices[deviceId]
         self.setAlarm(u"off", device)
 
-    def setAlarm(self, state, device):
-        username = device.pluginProps["username"]
-        password = device.pluginProps["password"]
-        hasUsername = username is not None and username != u""
-        hasPassword = password is not None and password != u""
-        if hasUsername and hasPassword:
-            self.login(username, password)
-            self.get_location()
-            self.set_state(state, device)
+    def getAlarmState(self, action):
+        #PluginAction class
+        deviceId = action.deviceId
+        device = indigo.devices[deviceId]
+        self.updateDeviceState(device)
+
+    def setAlarm(self, state, dev):
+        if self.ensureLogin(dev):
+            self.getLocation()
+            self.setState(state, dev)
             # self.get_dashboard()
-            self.logout()
         else:
-            indigo.server.log("Username or password not set", isError=True)
+            indigo.server.log("Error logging in.", isError=True)
 
     def abort(self, msg):
-        indigo.server.log("Aborting and Logging Out. %s" % msg, isError=True)
-        self.logout()
+        indigo.server.log("Error: %s" % msg, isError=True)
 
-    def set_state(self, state, device):
+    def setState(self, state, device):
 
         if state not in ('home', 'away', 'off'):
             self.abort("State must be 'home', 'away', or 'off'. You tried '%s'." % state)
@@ -94,17 +100,30 @@ class Plugin(indigo.PluginBase):
             '5': 'away',
         }
         result_code = response_object['result']
-        self.state = result_codes[str(result_code)]
+        self.state = result_codes[str(result_code)].lower()
 
         self.updateDeviceState(device)
 
         indigo.server.log("Alarm State: %s" % self.state)
-        return result_codes[str(result_code)]
+        return self.state
 
-    def updateDeviceState(self, device):
+    def updateDeviceState(self, dev):
+        if not self.ensureLogin(dev):
+            self.abort("Not logged in - unable to update alarm state")
+            return
+
+        #get the current state from the server
+        self.getLocation()
+
+        indigo.server.log("Current State: " + self.state)
+
         stateToDisplay = 'Unknown'
         imageToDisplay = indigo.kStateImageSel.SensorOff
         if self.state == 'off':
+            stateToDisplay = 'Disarmed'
+            imageToDisplay = indigo.kStateImageSel.SensorTripped
+        elif self.state == 'pending off':
+            self.state = 'off' # reset 'pending off' to 'off'
             stateToDisplay = 'Disarmed'
             imageToDisplay = indigo.kStateImageSel.SensorTripped
         elif self.state == 'home':
@@ -116,8 +135,10 @@ class Plugin(indigo.PluginBase):
         else:
             self.state = 'unknown'
 
-        device.updateStateOnServer('alarmState', value=self.state, uiValue=stateToDisplay, clearErrorState=True)
-        device.updateStateImageOnServer(imageToDisplay)
+        indigo.server.log("State NOW: " + self.state)
+
+        dev.updateStateOnServer('alarmState', value=self.state, uiValue=stateToDisplay, clearErrorState=True)
+        dev.updateStateImageOnServer(imageToDisplay)
     #
     # def get_state(self):
     #     return self.state
@@ -154,7 +175,7 @@ class Plugin(indigo.PluginBase):
         if self.debug:
             indigo.server.log("Current Temperature: %s" % self.temperature)
 
-    def get_location(self):
+    def getLocation(self):
 
         if not self.uid:
             self.abort("You tried to get location without first having a User ID set.")
@@ -173,13 +194,24 @@ class Plugin(indigo.PluginBase):
         #     print "Location Response: %s" % response.text
 
         self.location = response_object['locations'].keys()[0]
-        self.state = response_object['locations'][self.location]['system_state']
+        self.state = response_object['locations'][self.location]['system_state'].lower()
 
-    def login(self, username, password):
+    def ensureLogin(self, dev):
+
+        username = dev.pluginProps["username"]
+        password = dev.pluginProps["password"]
+        hasUsername = username is not None and username != u""
+        hasPassword = password is not None and password != u""
 
         if not username or not password:
             self.abort("You must provide a username and password.")
-            return
+            return false
+
+        if self.isLoggedIn():
+            indigo.server.log("Existing Session found.  Not logging in again.")
+            return True
+
+        self.startSession()
 
         login_data = {
             'name': username,
@@ -194,19 +226,34 @@ class Plugin(indigo.PluginBase):
         response = self.session.post(LOGIN_URL, data=login_data)
         response_object = json.loads(response.text)
 
-        # if self.debug:
-        #     print "Login Response: %s" % response.text
-
         self.username = response_object['username']
         self.session_id = response_object['session']
         self.uid = response_object['uid']
 
+        return self.isLoggedIn()
+
     def logout(self):
 
-        logout_data = {
-            'no_persist': '0',
-            'XDEBUG_SESSION_START': 'session_name',
-        }
+        if isLoggedIn():
+            logout_data = {
+                'no_persist': '0',
+                'XDEBUG_SESSION_START': 'session_name',
+            }
 
-        response = self.session.post(LOGOUT_URL)
-        response_object = json.loads(response.text)
+            response = self.session.post(LOGOUT_URL)
+            response_object = json.loads(response.text)
+
+        self.session = None
+        self.session_id = None
+        self.uid = None
+
+    def isLoggedIn(self):
+        hasSession = self.session != None and self.session != ""
+        hasSessionId = self.session_id != None and self.session_id != ""
+        hasUid = self.uid != None and self.uid != ""
+
+        return hasSession and hasUid and hasSessionId
+
+    def startSession(self):
+        # Create a requests session to persist the cookies
+        self.session = requests.session()
