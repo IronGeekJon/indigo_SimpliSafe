@@ -11,6 +11,7 @@
     	</Field>
 			<Field id="password"
 						type="textfield"
+						secure="True"
 						readonly="NO">
 					<Label>SimpliSafe password:</Label>
 			</Field>
