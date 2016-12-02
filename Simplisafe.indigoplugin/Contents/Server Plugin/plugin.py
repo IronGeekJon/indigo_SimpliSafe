@@ -234,7 +234,7 @@ class Plugin(indigo.PluginBase):
 
     def logout(self):
 
-        if isLoggedIn():
+        if self.isLoggedIn():
             logout_data = {
                 'no_persist': '0',
                 'XDEBUG_SESSION_START': 'session_name',
